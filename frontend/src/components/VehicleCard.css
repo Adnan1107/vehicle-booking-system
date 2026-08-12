@@ -1,0 +1,74 @@
+.vehicle-card {
+  width: 320px;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.vehicle-image {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  display: block;
+}
+
+.no-image {
+  width: 100%;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eeeeee;
+  color: #777;
+}
+
+.vehicle-details {
+  padding: 20px;
+}
+
+.vehicle-details h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.vehicle-details p {
+  margin: 8px 0;
+}
+
+.vehicle-details h3 {
+  margin: 15px 0;
+}
+
+.available {
+  color: green;
+  font-weight: bold;
+}
+
+.not-available {
+  color: red;
+  font-weight: bold;
+}
+
+.book-button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  background: #222;
+  color: white;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.book-button:disabled {
+  background: #999;
+  cursor: not-allowed;
+}
+
+.vehicles-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 20px;
+}
