@@ -1,4 +1,4 @@
-const BASE_URL = 'http://127.0.0.1:8000'
+const BASE_URL = 'https://vehicle-booking-system-9klo.onrender.com'
 
 function normalizeList(data) {
   if (Array.isArray(data)) return data
