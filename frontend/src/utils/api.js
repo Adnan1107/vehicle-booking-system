@@ -1,14 +1,28 @@
-const BASE_URL = 'https://vehicle-booking-system-9klo.onrender.com'
+// ============================================================
+// API BASE URL
+// ============================================================
+
+const BASE_URL = 'https://vehicle-booking-system-1-1qnx.onrender.com'
+
+
+// ============================================================
+// HELPERS
+// ============================================================
 
 function normalizeList(data) {
   if (Array.isArray(data)) return data
-  if (data && Array.isArray(data.results)) return data.results
+
+  if (data && Array.isArray(data.results)) {
+    return data.results
+  }
+
   return []
 }
 
-/* ============================================================
-   VEHICLES
-============================================================ */
+
+// ============================================================
+// VEHICLES
+// ============================================================
 
 export async function fetchVehicles() {
   const res = await fetch(`${BASE_URL}/api/vehicles/`)
@@ -18,8 +32,10 @@ export async function fetchVehicles() {
   }
 
   const data = await res.json()
+
   return normalizeList(data)
 }
+
 
 export async function fetchVehicle(id) {
   const res = await fetch(`${BASE_URL}/api/vehicles/${id}/`)
@@ -31,9 +47,10 @@ export async function fetchVehicle(id) {
   return res.json()
 }
 
-/* ============================================================
-   BOOKINGS
-============================================================ */
+
+// ============================================================
+// BOOKINGS
+// ============================================================
 
 export async function fetchBookings() {
   const res = await fetch(`${BASE_URL}/api/bookings/`)
@@ -43,15 +60,19 @@ export async function fetchBookings() {
   }
 
   const data = await res.json()
+
   return normalizeList(data)
 }
+
 
 export async function createBooking(payload) {
   const res = await fetch(`${BASE_URL}/api/bookings/`, {
     method: 'POST',
+
     headers: {
       'Content-Type': 'application/json',
     },
+
     body: JSON.stringify(payload),
   })
 
@@ -59,12 +80,15 @@ export async function createBooking(payload) {
 
   if (!res.ok) {
     const error = new Error('Booking failed')
+
     error.data = data
+
     throw error
   }
 
   return data
 }
+
 
 export async function cancelBooking(id) {
   const res = await fetch(`${BASE_URL}/api/bookings/${id}/cancel/`, {
@@ -75,23 +99,28 @@ export async function cancelBooking(id) {
 
   if (!res.ok) {
     const error = new Error('Cancel failed')
+
     error.data = data
+
     throw error
   }
 
   return data
 }
 
-/* ============================================================
-   CUSTOMER REGISTER
-============================================================ */
+
+// ============================================================
+// CUSTOMER REGISTER
+// ============================================================
 
 export async function registerCustomer(payload) {
   const res = await fetch(`${BASE_URL}/api/auth/register/`, {
     method: 'POST',
+
     headers: {
       'Content-Type': 'application/json',
     },
+
     body: JSON.stringify(payload),
   })
 
@@ -99,23 +128,28 @@ export async function registerCustomer(payload) {
 
   if (!res.ok) {
     const error = new Error('Registration failed')
+
     error.data = data
+
     throw error
   }
 
   return data
 }
 
-/* ============================================================
-   CUSTOMER LOGIN
-============================================================ */
+
+// ============================================================
+// CUSTOMER LOGIN
+// ============================================================
 
 export async function loginCustomer(payload) {
   const res = await fetch(`${BASE_URL}/api/auth/login/`, {
     method: 'POST',
+
     headers: {
       'Content-Type': 'application/json',
     },
+
     body: JSON.stringify(payload),
   })
 
@@ -123,16 +157,19 @@ export async function loginCustomer(payload) {
 
   if (!res.ok) {
     const error = new Error('Login failed')
+
     error.data = data
+
     throw error
   }
 
   return data
 }
 
-/* ============================================================
-   LOGOUT
-============================================================ */
+
+// ============================================================
+// LOGOUT
+// ============================================================
 
 export function logoutCustomer() {
   localStorage.removeItem('access_token')
@@ -140,17 +177,20 @@ export function logoutCustomer() {
   localStorage.removeItem('user')
 }
 
-/* ============================================================
-   AUTH HELPERS
-============================================================ */
+
+// ============================================================
+// AUTH HELPERS
+// ============================================================
 
 export function getAccessToken() {
   return localStorage.getItem('access_token')
 }
 
+
 export function isLoggedIn() {
   return !!localStorage.getItem('access_token')
 }
+
 
 export function getCurrentUser() {
   const user = localStorage.getItem('user')
