@@ -1,207 +1,156 @@
-// ============================================================
-// API BASE URL
-// ============================================================
+// Single source of truth for the backend URL and the auth token key.
+// Previously Login.jsx / Register.jsx / VehicleList.jsx each hardcoded
+// 'http://127.0.0.1:8000', which breaks the moment this is deployed.
+// Set VITE_API_URL in a .env file (frontend/.env.example is provided).
+export const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
 
-const BASE_URL = 'https://vehicle-booking-system-1-1qnx.onrender.com'
+// Previously Login.jsx stored the token as 'access_token' while
+// Navbar.jsx's logout cleared 'token' / 'access' / 'refresh' / 'user'.
+// One key, used everywhere.
+const TOKEN_KEY = 'access_token'
+const USER_KEY = 'user'
 
-
-// ============================================================
-// HELPERS
-// ============================================================
-
-function normalizeList(data) {
-  if (Array.isArray(data)) return data
-
-  if (data && Array.isArray(data.results)) {
-    return data.results
-  }
-
-  return []
+export function getToken() {
+  return localStorage.getItem(TOKEN_KEY)
 }
 
-
-// ============================================================
-// VEHICLES
-// ============================================================
-
-export async function fetchVehicles() {
-  const res = await fetch(`${BASE_URL}/api/vehicles/`)
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch vehicles: ${res.status}`)
-  }
-
-  const data = await res.json()
-
-  return normalizeList(data)
-}
-
-
-export async function fetchVehicle(id) {
-  const res = await fetch(`${BASE_URL}/api/vehicles/${id}/`)
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch vehicle: ${res.status}`)
-  }
-
-  return res.json()
-}
-
-
-// ============================================================
-// BOOKINGS
-// ============================================================
-
-export async function fetchBookings() {
-  const res = await fetch(`${BASE_URL}/api/bookings/`)
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch bookings: ${res.status}`)
-  }
-
-  const data = await res.json()
-
-  return normalizeList(data)
-}
-
-
-export async function createBooking(payload) {
-  const res = await fetch(`${BASE_URL}/api/bookings/`, {
-    method: 'POST',
-
-    headers: {
-      'Content-Type': 'application/json',
-    },
-
-    body: JSON.stringify(payload),
-  })
-
-  const data = await res.json()
-
-  if (!res.ok) {
-    const error = new Error('Booking failed')
-
-    error.data = data
-
-    throw error
-  }
-
-  return data
-}
-
-
-export async function cancelBooking(id) {
-  const res = await fetch(`${BASE_URL}/api/bookings/${id}/cancel/`, {
-    method: 'POST',
-  })
-
-  const data = await res.json()
-
-  if (!res.ok) {
-    const error = new Error('Cancel failed')
-
-    error.data = data
-
-    throw error
-  }
-
-  return data
-}
-
-
-// ============================================================
-// CUSTOMER REGISTER
-// ============================================================
-
-export async function registerCustomer(payload) {
-  const res = await fetch(`${BASE_URL}/api/auth/register/`, {
-    method: 'POST',
-
-    headers: {
-      'Content-Type': 'application/json',
-    },
-
-    body: JSON.stringify(payload),
-  })
-
-  const data = await res.json()
-
-  if (!res.ok) {
-    const error = new Error('Registration failed')
-
-    error.data = data
-
-    throw error
-  }
-
-  return data
-}
-
-
-// ============================================================
-// CUSTOMER LOGIN
-// ============================================================
-
-export async function loginCustomer(payload) {
-  const res = await fetch(`${BASE_URL}/api/auth/login/`, {
-    method: 'POST',
-
-    headers: {
-      'Content-Type': 'application/json',
-    },
-
-    body: JSON.stringify(payload),
-  })
-
-  const data = await res.json()
-
-  if (!res.ok) {
-    const error = new Error('Login failed')
-
-    error.data = data
-
-    throw error
-  }
-
-  return data
-}
-
-
-// ============================================================
-// LOGOUT
-// ============================================================
-
-export function logoutCustomer() {
-  localStorage.removeItem('access_token')
-  localStorage.removeItem('refresh_token')
-  localStorage.removeItem('user')
-}
-
-
-// ============================================================
-// AUTH HELPERS
-// ============================================================
-
-export function getAccessToken() {
-  return localStorage.getItem('access_token')
-}
-
-
-export function isLoggedIn() {
-  return !!localStorage.getItem('access_token')
-}
-
-
-export function getCurrentUser() {
-  const user = localStorage.getItem('user')
-
-  if (!user) {
-    return null
-  }
-
+export function getUser() {
   try {
-    return JSON.parse(user)
+    return JSON.parse(localStorage.getItem(USER_KEY) || 'null')
   } catch {
     return null
   }
 }
+
+export function setSession(user, token) {
+  localStorage.setItem(USER_KEY, JSON.stringify(user))
+  localStorage.setItem(TOKEN_KEY, token)
+}
+
+export function clearSession() {
+  localStorage.removeItem(USER_KEY)
+  localStorage.removeItem(TOKEN_KEY)
+}
+
+export function isAuthenticated() {
+  return Boolean(getToken() && getUser())
+}
+
+export function isAdmin() {
+  return Boolean(getUser()?.is_staff)
+}
+
+class ApiError extends Error {
+  constructor(message, status, data) {
+    super(message)
+    this.status = status
+    this.data = data
+  }
+}
+
+async function request(path, { method = 'GET', body, auth = true } = {}) {
+  const headers = { 'Content-Type': 'application/json' }
+
+  if (auth) {
+    const token = getToken()
+    if (token) headers.Authorization = `Token ${token}`
+  }
+
+  let response
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    })
+  } catch {
+    throw new ApiError('Unable to connect to the server. Please try again.', 0, null)
+  }
+
+  // 204 No Content etc.
+  const text = await response.text()
+  const data = text ? JSON.parse(text) : null
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      clearSession()
+    }
+    const message =
+      data?.detail ||
+      (data && typeof data === 'object' ? Object.values(data).flat().join(' ') : null) ||
+      'Something went wrong. Please try again.'
+    throw new ApiError(message, response.status, data)
+  }
+
+  return data
+}
+
+// ---- Auth ----
+export const login = (username, password) =>
+  request('/api/auth/login/', { method: 'POST', body: { username, password }, auth: false })
+
+export const register = (payload) =>
+  request('/api/auth/register/', { method: 'POST', body: payload, auth: false })
+
+// ---- Vehicles ----
+export const fetchVehicles = (params = {}) => {
+  const qs = new URLSearchParams(params).toString()
+  return request(`/api/vehicles/${qs ? `?${qs}` : ''}`, { auth: false })
+}
+export const fetchVehicle = (id) => request(`/api/vehicles/${id}/`, { auth: false })
+
+// ---- Bookings ----
+export const fetchBookings = () => request('/api/bookings/')
+export const fetchBooking = (id) => request(`/api/bookings/${id}/`)
+export const createBooking = (payload) =>
+  request('/api/bookings/', { method: 'POST', body: payload })
+export const cancelBooking = (id) =>
+  request(`/api/bookings/${id}/cancel/`, { method: 'POST' })
+
+// ---- Payments ----
+export const fetchPayments = () => request('/api/payments/')
+export const payDemo = (paymentId) =>
+  request(`/api/payments/${paymentId}/pay/`, { method: 'POST' })
+
+async function requestForm(path, method, formData) {
+  const headers = {}
+  const token = getToken()
+  if (token) headers.Authorization = `Token ${token}`
+
+  let response
+  try {
+    response = await fetch(`${API_URL}${path}`, { method, headers, body: formData })
+  } catch {
+    throw new ApiError('Unable to connect to the server. Please try again.', 0, null)
+  }
+
+  const text = await response.text()
+  const data = text ? JSON.parse(text) : null
+
+  if (!response.ok) {
+    const message =
+      data?.detail ||
+      (data && typeof data === 'object' ? Object.values(data).flat().join(' ') : null) ||
+      'Something went wrong. Please try again.'
+    throw new ApiError(message, response.status, data)
+  }
+
+  return data
+}
+
+// ---- Admin ----
+export const fetchAdminStats = () => request('/api/admin/stats/')
+export const adminSetBookingStatus = (id, statusValue) =>
+  request(`/api/bookings/${id}/set-status/`, { method: 'POST', body: { status: statusValue } })
+
+// Vehicle create/update use multipart because of the image field.
+export const adminCreateVehicle = (formData) => requestForm('/api/vehicles/', 'POST', formData)
+export const adminUpdateVehicle = (id, formData) => requestForm(`/api/vehicles/${id}/`, 'PATCH', formData)
+export const adminDeleteVehicle = (id) => request(`/api/vehicles/${id}/`, { method: 'DELETE' })
+export { ApiError }
+
+// ---------------------------------------------------------------
+// Navbar.jsx should call clearSession() from here on logout instead
+// of manually removing 'token'/'access'/'refresh'/'user' — those key
+// names never matched what Login.jsx actually stored.
+// ---------------------------------------------------------------

@@ -1,43 +1,41 @@
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 
 class IsAdminOrOwner(BasePermission):
     """
     Admin:
-        - Full access to all bookings
+        - Full access to all bookings.
 
     Customer:
-        - Can view their own bookings
-        - Can create bookings
-        - Cannot edit/delete bookings
+        - Can list/create bookings (list is filtered to their own in the
+          viewset's get_queryset — this permission alone does not filter
+          querysets, it only gates individual object access).
+        - Can view/cancel only their own booking.
+        - Cannot PUT/PATCH/DELETE at all (cancellation goes through the
+          dedicated `cancel` action instead).
     """
 
     def has_permission(self, request, view):
-
-        # User must be logged in
         if not request.user or not request.user.is_authenticated:
             return False
 
-        # Admin has full access
         if request.user.is_staff:
             return True
 
-        # Customer can access list/retrieve/create
-        if request.method in ['GET', 'POST']:
+        if request.method in ('GET', 'POST'):
             return True
 
-        # Customer cannot PUT/PATCH/DELETE
+        # Plain PUT/PATCH/DELETE on the booking resource is blocked for
+        # everyone but staff. Cancellation uses the separate `cancel` action.
         return False
 
     def has_object_permission(self, request, view, obj):
-
-        # Admin can access everything
         if request.user.is_staff:
             return True
 
-        # Customer can only view their own booking
-        if request.method == 'GET':
-            return obj.user == request.user
+        if request.method in SAFE_METHODS:
+            return obj.user_id == request.user.id
 
-        # Customer cannot modify/delete
-        return False
+        # Non-safe object-level access (e.g. the `cancel` action) is also
+        # owner-only unless staff.
+        return obj.user_id == request.user.id

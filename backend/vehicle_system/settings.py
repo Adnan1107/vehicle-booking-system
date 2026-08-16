@@ -217,6 +217,7 @@ CORS_ALLOWED_ORIGINS = [
 
     # Production Vercel frontend
     "https://vehicle-booking-system-ty4t-ivory.vercel.app",
+    "https://vehicle-booking-system-dxtc-drab.vercel.app",
 ]
 
 
@@ -240,7 +241,17 @@ if cors_env:
 
 CSRF_TRUSTED_ORIGINS = [
     "https://vehicle-booking-system-ty4t-ivory.vercel.app",
+    "https://vehicle-booking-system-dxtc-drab.vercel.app",
 ]
+
+csrf_env = os.getenv("CSRF_TRUSTED_ORIGINS")
+
+if csrf_env:
+    CSRF_TRUSTED_ORIGINS = [
+        origin.strip()
+        for origin in csrf_env.split(",")
+        if origin.strip()
+    ]
 
 
 # ============================================================
@@ -252,11 +263,9 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.TokenAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
-
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.AllowAny",
+        "rest_framework.permissions.IsAuthenticated",
     ],
-
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
     ],
